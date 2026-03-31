@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+video {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
