@@ -1,5 +1,5 @@
-let scene, camera, renderer, particleSystem;
-let gestureState = "idle";
+let scene, camera, renderer, particles;
+let scaleFactor = 1;
 
 init();
 initHandTracking();
@@ -8,76 +8,68 @@ animate();
 function init() {
   scene = new THREE.Scene();
 
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
   camera.position.z = 5;
 
-  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("canvas") });
-  renderer.setSize(window.innerWidth * 0.8, window.innerHeight * 0.8);
+  renderer = new THREE.WebGLRenderer({
+    canvas: document.getElementById("canvas"),
+    antialias: true
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
 
-  createParticles();
+  createHeartParticles();
 }
 
-function createParticles(type = "sphere") {
+// ❤️ HEART PARTICLES
+function createHeartParticles() {
   const geometry = new THREE.BufferGeometry();
-  const count = 800;
+  const count = 1000;
 
   const positions = new Float32Array(count * 3);
 
   for (let i = 0; i < count; i++) {
-    let x, y, z;
+    let t = Math.random() * Math.PI * 2;
 
-    if (type === "heart") {
-      let t = Math.random() * Math.PI * 2;
-      x = 16 * Math.pow(Math.sin(t), 3);
-      y = 13 * Math.cos(t) - 5 * Math.cos(2*t);
-      z = Math.random() * 2 - 1;
-    } else {
-      x = (Math.random() - 0.5) * 5;
-      y = (Math.random() - 0.5) * 5;
-      z = (Math.random() - 0.5) * 5;
-    }
+    let x = 16 * Math.pow(Math.sin(t), 3);
+    let y =
+      13 * Math.cos(t) -
+      5 * Math.cos(2 * t) -
+      2 * Math.cos(3 * t) -
+      Math.cos(4 * t);
 
-    positions[i * 3] = x * 0.1;
-    positions[i * 3 + 1] = y * 0.1;
-    positions[i * 3 + 2] = z * 0.1;
+    let z = (Math.random() - 0.5) * 2;
+
+    positions[i * 3] = x * 0.05;
+    positions[i * 3 + 1] = y * 0.05;
+    positions[i * 3 + 2] = z * 0.05;
   }
 
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(positions, 3)
+  );
 
   const material = new THREE.PointsMaterial({
-    color: 0xff4d6d,
+    color: 0xff3366,
     size: 0.05
   });
 
-  if (particleSystem) scene.remove(particleSystem);
-
-  particleSystem = new THREE.Points(geometry, material);
-  scene.add(particleSystem);
+  particles = new THREE.Points(geometry, material);
+  scene.add(particles);
 }
 
-function animate() {
-  requestAnimationFrame(animate);
-
-  if (gestureState === "expand") {
-    particleSystem.scale.x += 0.01;
-    particleSystem.scale.y += 0.01;
-  }
-
-  if (gestureState === "contract") {
-    particleSystem.scale.x -= 0.01;
-    particleSystem.scale.y -= 0.01;
-  }
-
-  renderer.render(scene, camera);
-}
-
+// 🎥 HAND TRACKING
 function initHandTracking() {
   const video = document.getElementById("video");
 
   const hands = new Hands({
-    locateFile: (file) => {
-      return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-    }
+    locateFile: (file) =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
   });
 
   hands.setOptions({
@@ -86,25 +78,21 @@ function initHandTracking() {
     minTrackingConfidence: 0.7
   });
 
-  hands.onResults(results => {
+  hands.onResults((results) => {
     if (results.multiHandLandmarks.length > 0) {
-      const landmarks = results.multiHandLandmarks[0];
+      const lm = results.multiHandLandmarks[0];
 
-      let thumbY = landmarks[4].y;
-      let indexY = landmarks[8].y;
+      let thumbY = lm[4].y;
+      let indexY = lm[8].y;
 
+      // 👍 expand / shrink
       if (thumbY < indexY) {
-        gestureState = "expand";
+        scaleFactor += 0.02;
       } else {
-        gestureState = "contract";
+        scaleFactor -= 0.02;
       }
 
-      if (landmarks[8].x < 0.3) {
-        createParticles("heart");
-      }
-      if (landmarks[8].x > 0.7) {
-        createParticles("sphere");
-      }
+      scaleFactor = Math.max(0.5, Math.min(2.5, scaleFactor));
     }
   });
 
@@ -118,3 +106,24 @@ function initHandTracking() {
 
   cam.start();
 }
+
+// 🎬 ANIMATION
+function animate() {
+  requestAnimationFrame(animate);
+
+  if (particles) {
+    particles.rotation.y += 0.01;
+    particles.rotation.x += 0.005;
+
+    particles.scale.set(scaleFactor, scaleFactor, scaleFactor);
+  }
+
+  renderer.render(scene, camera);
+}
+
+// 📱 RESIZE FIX
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
