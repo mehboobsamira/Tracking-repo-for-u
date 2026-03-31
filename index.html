@@ -1,26 +1,133 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Heart Particle Magic</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Love ❤️</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin:0; overflow:hidden; background:black; }
+
+video {
+  position:absolute;
+  width:120px;
+  height:160px;
+  top:10px;
+  right:10px;
+  border-radius:10px;
+  border:2px solid white;
+  z-index:2;
+}
+
+canvas { position:absolute; top:0; left:0; }
+
+button {
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  padding:15px 25px;
+  font-size:18px;
+  background:#ff3366;
+  color:white;
+  border:none;
+  border-radius:10px;
+  z-index:3;
+}
+</style>
 </head>
+
 <body>
 
-<button id="startBtn">Start Magic ❤️</button>
+<button onclick="start()">Start ❤️</button>
 
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline muted></video>
 <canvas id="canvas"></canvas>
 
-<!-- Three.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 
-<!-- MediaPipe -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script>
+let scene, camera, renderer, particles;
 
-<script src="script.js"></script>
+async function start() {
+  document.querySelector("button").style.display="none";
+
+  const video = document.getElementById("video");
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject = stream;
+
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight,0.1,1000);
+  camera.position.z = 5;
+
+  renderer = new THREE.WebGLRenderer({
+    canvas: document.getElementById("canvas"),
+    alpha:true
+  });
+
+  renderer.setSize(innerWidth, innerHeight);
+
+  createHeart();
+  createText();
+  animate();
+}
+
+// ❤️ HEART
+function createHeart() {
+  const geo = new THREE.BufferGeometry();
+  const count = 1500;
+  const pos = new Float32Array(count*3);
+
+  for(let i=0;i<count;i++){
+    let t = Math.random()*Math.PI*2;
+
+    let x = 16*Math.pow(Math.sin(t),3);
+    let y = 13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+    let z = (Math.random()-0.5)*2;
+
+    pos[i*3]=x*0.08;
+    pos[i*3+1]=y*0.08;
+    pos[i*3+2]=z*0.08;
+  }
+
+  geo.setAttribute("position", new THREE.BufferAttribute(pos,3));
+
+  const mat = new THREE.PointsMaterial({color:0xff3366,size:0.06});
+  particles = new THREE.Points(geo,mat);
+  scene.add(particles);
+}
+
+// TEXT
+function createText(){
+  const c=document.createElement("canvas");
+  const ctx=c.getContext("2d");
+
+  c.width=512; c.height=256;
+
+  ctx.fillStyle="white";
+  ctx.font="bold 40px Arial";
+  ctx.textAlign="center";
+
+  ctx.fillText("Mehboob ❤️ Sameera",256,130);
+
+  const tex=new THREE.CanvasTexture(c);
+  const mat=new THREE.SpriteMaterial({map:tex});
+  const text=new THREE.Sprite(mat);
+
+  text.scale.set(3,1.5,1);
+  scene.add(text);
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  if(particles){
+    particles.rotation.y+=0.01;
+  }
+
+  renderer.render(scene,camera);
+}
+</script>
 
 </body>
 </html>
