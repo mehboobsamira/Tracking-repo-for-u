@@ -1,10 +1,19 @@
 let scene, camera, renderer, particles;
 let scaleFactor = 1;
 
-init();
-initHandTracking();
-animate();
+// START BUTTON LOGIC
+document.getElementById("startBtn").addEventListener("click", () => {
+  document.getElementById("startBtn").style.display = "none";
+  startApp();
+});
 
+function startApp() {
+  init();
+  initHandTracking();
+  animate();
+}
+
+// INIT 3D
 function init() {
   scene = new THREE.Scene();
 
@@ -20,6 +29,7 @@ function init() {
     canvas: document.getElementById("canvas"),
     antialias: true
   });
+
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   createHeartParticles();
@@ -85,11 +95,10 @@ function initHandTracking() {
       let thumbY = lm[4].y;
       let indexY = lm[8].y;
 
-      // 👍 expand / shrink
       if (thumbY < indexY) {
-        scaleFactor += 0.02;
+        scaleFactor += 0.02; // expand
       } else {
-        scaleFactor -= 0.02;
+        scaleFactor -= 0.02; // shrink
       }
 
       scaleFactor = Math.max(0.5, Math.min(2.5, scaleFactor));
